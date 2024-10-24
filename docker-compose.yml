@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  db:
+    image: "postgres:16-alpine"
+    container_name: "backup-db"
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: qwe123
+      POSTGRES_DB: backup_db
+    volumes:
+      - pg-data:/var/lib/postgresql/data:rw
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "PGPASSWORD=qwe123 psql -U myuser -d backup_db -c 'SELECT 1'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db_backup:
+    image: postgres:16-alpine
+    container_name: "backup-db-job"
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: qwe123
+      POSTGRES_DB: backup_db
+    volumes:
+      - pg-data:/var/lib/postgresql/data:rw
+      - ./db_backups:/backups
+    entrypoint: >
+      /bin/sh -c 'while true; do
+        pg_dump -U myuser backup_db > /backups/backup_$(date +%Y%m%d_%H%M%S).sql;
+        sleep 86400;
+      done'
+    restart: unless-stopped
+
+volumes:
+  pg-data:
