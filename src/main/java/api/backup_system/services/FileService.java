@@ -3,6 +3,7 @@ package api.backup_system.services;
 import api.backup_system.domain.dto.FileDTO;
 import api.backup_system.domain.entities.File;
 import api.backup_system.domain.repository.FileRepository;
+import api.backup_system.services.mappers.FileMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,8 @@ public class FileService {
 
     private final FileRepository fileRepository;
 
+    private final FileMapper fileMapper;
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     public List<FileDTO> uploadFiles(List<MultipartFile> files) throws IOException, InterruptedException, ExecutionException {
@@ -40,7 +43,6 @@ public class FileService {
             fileDTOS.add(future.get());
         }
 
-
         return fileDTOS;
     }
 
@@ -52,7 +54,7 @@ public class FileService {
         savedFile.setFileSize(file.getSize());
         savedFile.setUploadedAt(LocalDateTime.now());
 
-        return mapToDTO(fileRepository.save(savedFile));
+        return fileMapper.toDTO(fileRepository.save(savedFile));
 
     }
 
@@ -64,13 +66,5 @@ public class FileService {
         return file.getContentType();
     }
 
-    private FileDTO mapToDTO(File file) {
-        FileDTO dto = new FileDTO();
-        dto.setId(file.getId());
-        dto.setFileName(file.getFileName());
-        dto.setFileType(file.getFileType());
-        dto.setFileSize(file.getFileSize());
-        dto.setUploadedAt(file.getUploadedAt());
-        return dto;
-    }
+
 }
