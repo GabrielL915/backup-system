@@ -33,9 +33,6 @@ public class File {
     private String fileName;
 
     @Column(nullable = false)
-    private String filePath;
-
-    @Column(nullable = false)
     private String fileType;
 
     @Column(nullable = false)

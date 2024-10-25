@@ -46,6 +46,6 @@ public class Backup {
     @Column(nullable = false)
     private String createdBy;
 
-    @OneToMany(mappedBy = "backup")
+    @OneToMany
     private List<File> files;
 }
