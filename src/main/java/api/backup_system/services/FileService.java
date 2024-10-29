@@ -4,61 +4,47 @@ import api.backup_system.domain.dto.FileDTO;
 import api.backup_system.domain.entities.File;
 import api.backup_system.domain.repository.FileRepository;
 import api.backup_system.services.mappers.FileMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 @Service
+@RequiredArgsConstructor
 public class FileService {
 
 
-    @Autowired
-    private FileRepository fileRepository;
+    private final FileRepository fileRepository;
 
-    @Autowired
-    private FileMapper fileMapper;
+    private final FileMapper fileMapper;
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-
-    public List<FileDTO> uploadFiles(List<MultipartFile> files) throws IOException, InterruptedException, ExecutionException {
-
-        List<Callable<FileDTO>> tasks = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            tasks.add(() -> uploadFile(file));
-        }
-
-        List<Future<FileDTO>> futures = executorService.invokeAll(tasks);
-        List<FileDTO> fileDTOS = new ArrayList<>();
-
-        for (Future<FileDTO> future : futures) {
-            fileDTOS.add(future.get());
-        }
-
-        return fileDTOS;
+    public List<CompletableFuture<FileDTO>> uploadFiles(List<MultipartFile> files) {
+        return files.stream()
+                .map(this::uploadFileAsync)
+                .toList();
     }
 
-    public FileDTO uploadFile(MultipartFile file) throws IOException {
+    @Async("fileUploadExecutor")
+    public CompletableFuture<FileDTO> uploadFileAsync(MultipartFile file) {
+        try {
+            File savedFile = new File();
+            savedFile.setFileName(extractFileName(file));
+            savedFile.setFileType(extractFileType(file));
+            savedFile.setFileSize(file.getSize());
+            savedFile.setUploadedAt(LocalDateTime.now());
+            savedFile.setContent(file.getBytes());
 
-        File savedFile = new File();
-        savedFile.setFileName(extractFileName(file));
-        savedFile.setFileType(extractFileType(file));
-        savedFile.setFileSize(file.getSize());
-        savedFile.setUploadedAt(LocalDateTime.now());
-        savedFile.setContent(file.getBytes());
+            FileDTO fileDTO = fileMapper.toDTO(fileRepository.save(savedFile));
 
-        return fileMapper.toDTO(fileRepository.save(savedFile));
-
+            return CompletableFuture.completedFuture(fileDTO);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private String extractFileName(MultipartFile file) {

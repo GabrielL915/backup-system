@@ -21,10 +21,15 @@ public class BackupService {
 
     private final Path backupDirectory = Paths.get("backups-generated");
 
-    @Autowired
-    private FileRepository fileRepository;
+    private final FileRepository fileRepository;
 
-    public BackupService() throws IOException {
+    @Autowired
+    public BackupService(FileRepository fileRepository) throws IOException {
+        this.fileRepository = fileRepository;
+        createBackupDir();
+    }
+
+    private void createBackupDir() throws IOException {
         if (!Files.exists(backupDirectory)) {
             Files.createDirectories(backupDirectory);
         }
@@ -36,19 +41,26 @@ public class BackupService {
         String zipFileName = "backup_" + System.currentTimeMillis() + ".zip";
         Path zipFilePath = backupDirectory.resolve(zipFileName);
 
-        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile()))) {
-            for (File file : files) {
-                ZipEntry zipEntry = new ZipEntry(file.getFileName());
-                zipOut.putNextEntry(zipEntry);
-
-
-                ByteArrayInputStream fileContentStream = new ByteArrayInputStream(file.getContent());
-                fileContentStream.transferTo(zipOut);
-
-                zipOut.closeEntry();
-            }
-        }
+        createZip(zipFilePath, files);
 
         return zipFilePath.toString();
+    }
+
+    private static void createZip(Path zipFilePath, List<File> files) throws IOException {
+        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile()))) {
+            for (File file : files) {
+                addFileToZip(file, zipOut);
+            }
+        }
+    }
+
+    private static void addFileToZip(File file, ZipOutputStream zipOut) throws IOException {
+        ZipEntry zipEntry = new ZipEntry(file.getFileName());
+        zipOut.putNextEntry(zipEntry);
+
+        ByteArrayInputStream fileContentStream = new ByteArrayInputStream(file.getContent());
+        fileContentStream.transferTo(zipOut);
+
+        zipOut.closeEntry();
     }
 }
