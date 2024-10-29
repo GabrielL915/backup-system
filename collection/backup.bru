@@ -1,0 +1,11 @@
+meta {
+  name: backup
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3000/backup-system/api/files/backup
+  body: multipartForm
+  auth: none
+}

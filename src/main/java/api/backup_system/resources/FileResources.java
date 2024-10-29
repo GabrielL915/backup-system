@@ -1,7 +1,10 @@
 package api.backup_system.resources;
 
 import api.backup_system.domain.dto.FileDTO;
+import api.backup_system.services.BackupService;
 import api.backup_system.services.FileService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -15,12 +18,19 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/files")
+@RequiredArgsConstructor
 public class FileResources {
 
-    private final FileService fileService;
+    @Autowired
+    private FileService fileService;
 
-    public FileResources(FileService fileService) {
-        this.fileService = fileService;
+    @Autowired
+    private BackupService backupService;
+
+    @PostMapping("/backup")
+    public ResponseEntity<String> createBackup() throws IOException {
+        String backupPath = backupService.createBackup();
+        return ResponseEntity.ok("Backup created at: " + backupPath);
     }
 
     @PostMapping("/upload")

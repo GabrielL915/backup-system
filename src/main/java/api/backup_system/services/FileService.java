@@ -4,7 +4,7 @@ import api.backup_system.domain.dto.FileDTO;
 import api.backup_system.domain.entities.File;
 import api.backup_system.domain.repository.FileRepository;
 import api.backup_system.services.mappers.FileMapper;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,12 +19,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 @Service
-@RequiredArgsConstructor
 public class FileService {
 
-    private final FileRepository fileRepository;
 
-    private final FileMapper fileMapper;
+    @Autowired
+    private FileRepository fileRepository;
+
+    @Autowired
+    private FileMapper fileMapper;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
@@ -53,6 +55,7 @@ public class FileService {
         savedFile.setFileType(extractFileType(file));
         savedFile.setFileSize(file.getSize());
         savedFile.setUploadedAt(LocalDateTime.now());
+        savedFile.setContent(file.getBytes());
 
         return fileMapper.toDTO(fileRepository.save(savedFile));
 
@@ -65,6 +68,4 @@ public class FileService {
     private String extractFileType(MultipartFile file) {
         return file.getContentType();
     }
-
-
 }
